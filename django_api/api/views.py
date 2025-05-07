@@ -47,8 +47,8 @@ class CargoTypeViewSet(viewsets.ReadOnlyModelViewSet):
 class DeliveryViewSet(viewsets.ModelViewSet):
     queryset = Delivery.objects.all()
     serializer_class = DeliverySerializer
-    permission_classes = [IsAuthenticated]
-    filter_backends = [DjangoFilterBackend]
+    # permission_classes = [IsAuthenticated]
+    # filter_backends = [DjangoFilterBackend]
     filterset_fields = ['status', 'services', 'cargo_type']
 
     def get_queryset(self):
@@ -68,8 +68,8 @@ class DeliveryViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(scheduled_delivery__lte=date_to)
         
         # Для обычных пользователей показываем только их доставки
-        if not user.is_staff:
-            queryset = queryset.filter(customer=user)
+        # if not user.is_staff:
+        #     queryset = queryset.filter(customer=user)
         
         return queryset
 
