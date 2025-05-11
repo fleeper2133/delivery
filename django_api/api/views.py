@@ -77,7 +77,7 @@ class DeliveryViewSet(viewsets.ModelViewSet):
         serializer.save(customer=self.request.user)
 
     @action(detail=True, methods=['post'])
-    def complete_delivery(self, request, pk=None):
+    def complete(self, request, pk=None):
         delivery = self.get_object()
         completed_status = DeliveryStatus.objects.get(code='DELIVERED')
         delivery.status = completed_status
