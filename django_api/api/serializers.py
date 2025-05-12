@@ -86,7 +86,7 @@ class DeliverySerializer(serializers.ModelSerializer):
     class Meta:
         model = Delivery
         fields = '__all__'
-        read_only_fields = ('tracking_number', 'created_at', 'updated_at', 'customer')
+        read_only_fields = ('created_at', 'updated_at', 'customer')
 
     def create(self, validated_data):
         services = validated_data.pop('services', [])
@@ -112,3 +112,26 @@ class DeliverySerializer(serializers.ModelSerializer):
             )
         
         return delivery
+
+    def update(self, instance, validated_data):
+        services = validated_data.pop('services', [])
+        media_files = self.context.get('request').FILES.getlist('media_files', [])
+        
+        # Обновляем поля доставки
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+        
+        # Обновляем связанные услуги
+        if services:
+            instance.services.set(services)
+        
+        # Добавляем новые медиафайлы
+        for file in media_files:
+            DeliveryMedia.objects.create(
+                delivery=instance,
+                file=file,
+                file_type=file.content_type
+            )
+        
+        return instance
