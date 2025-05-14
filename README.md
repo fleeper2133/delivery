@@ -29,13 +29,13 @@ DB_PORT=5432
 
 # CORS
 CORS_ALLOWED_ORIGINS=http://localhost:8080,http://127.0.0.1:8080
-   ```
+  ```
 
 3. Запустите проект с помощью Docker Compose:
 
    ```bash
 docker-compose up --build
-   ```
+  
 
 4. После успешного запуска, сервисы будут доступны по следующим адресам:
    - Бэкенд: `http://localhost:8000`
@@ -68,6 +68,3 @@ docker-compose down
 docker-compose exec backend python manage.py migrate
   ```
 
-## Лицензия
-
-MIT
