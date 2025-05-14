@@ -2,20 +2,22 @@ import { DataGrid, GridColDef } from '@mui/x-data-grid';
 
 const columns: GridColDef[] = [
   { field: 'tracking_number', headerName: 'Трек-номер', width: 150 },
+  { field: 'transport', headerName: 'Транспорт', width: 150, valueFormatter: (params: { name: string }) => params.name || 'Не указан' },
   { field: 'transport_number', headerName: 'Номер ТС', width: 120 },
-  { field: 'services', headerName: 'Услуга', width: 200 },
-  { 
+  { field: 'services', headerName: 'Услуги', width: 200, valueFormatter: (params:  { name: string }[] ) => params.map(service => service.name).join(', ') || 'Не указан' },  { 
     field: 'delivery_date', 
     headerName: 'Дата доставки', 
     width: 150,
-    valueFormatter: (params: { value: string }) => params.value || 'Не указана'  },
-  { field: 'distance_km', headerName: 'Дистанция (км)', width: 130 },
+    valueFormatter: (params: { value: string }) => params || 'Не указана'  },
+ 
+  { field: 'cargo_type', headerName: 'Тип груза', width: 150, valueFormatter: (params: { name: string }) => params?.name || 'Не указан' },
   { 
     field: 'status', 
     headerName: 'Статус', 
     width: 150,
-    valueFormatter: (params: { value: string }) => params.value || 'Не указан'
-  }
+    valueFormatter: (params: { value: string }) => params || 'Не указан'
+  },
+   { field: 'distance_km', headerName: 'Дистанция (км)', width: 130 },
 ];
 
 interface DeliveriesTableProps {

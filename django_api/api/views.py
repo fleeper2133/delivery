@@ -18,6 +18,7 @@ from reference_books.models import (
 from .serializers import *
 from datetime import datetime, timedelta
 import pytz
+from django.db.models.functions import TruncDate
 
 class TransportModelViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = TransportModel.objects.all()
@@ -130,11 +131,18 @@ class StatisticsView(generics.GenericAPIView):
             queryset.values('services__name')
             .annotate(count=Count('id'))
         )
-        
+
+        by_date = (
+            queryset.annotate(date=TruncDate('scheduled_delivery'))
+            .values('date')
+            .annotate(count=Count('id'))
+            .order_by('date')
+        )        
         return Response({
             'total_deliveries': total_deliveries,
             'total_distance_km': total_distance,
             'total_revenue': total_revenue,
             'by_status': list(by_status),
             'by_service': list(by_service),
+            'by_date': list(by_date),
         })

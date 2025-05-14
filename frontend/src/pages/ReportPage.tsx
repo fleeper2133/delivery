@@ -1,10 +1,25 @@
 import { useEffect, useState } from 'react';
-import { Box, CircularProgress, Typography, Paper } from '@mui/material';
+import { 
+  Box, 
+  CircularProgress, 
+  Typography, 
+  Paper, 
+  MenuItem, 
+  Select, 
+  FormControl, 
+  InputLabel,
+  Button,
+  Stack,
+  AppBar,
+  Toolbar,
+  Container
+} from '@mui/material';
 import apiClient from '../api/client';
 import { Filters } from '../components/Filters';
 import { DeliveryChart } from '../components/Chart';
 import { DeliveriesTable } from '../components/DeliveriesTable';
 import { format } from 'date-fns';
+import { useNavigate } from 'react-router-dom';
 
 interface Delivery {
   id: number;
@@ -12,8 +27,9 @@ interface Delivery {
   transport_number: string;
   services: string;
   distance_km: number;
-  status: { name: string } | string;
+  status: { name: string };
   actual_delivery: string;
+  scheduled_delivery: string;
 }
 
 interface FiltersState {
@@ -30,12 +46,17 @@ interface ApiData {
     total_revenue?: number;
     by_status?: Array<{ status__name: string; count: number }>;
     by_service?: Array<{ services__name: string; count: number }>;
-    by_date?: Array<{ delivery_date: string; count: number }>;
+    by_date?: Array<{ date: string; count: number }>;
   };
   deliveries?: Delivery[];
+  allServices: [];
+  allTypes: [];
 }
 
+type ChartType = 'by_date' | 'by_service' | 'by_status';
+
 const ReportPage = () => {
+  const navigate = useNavigate();
   const [filters, setFilters] = useState<FiltersState>({
     dateFrom: null,
     dateTo: null,
@@ -46,6 +67,13 @@ const ReportPage = () => {
   const [data, setData] = useState<ApiData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedChart, setSelectedChart] = useState<ChartType>('by_date');
+
+  const handleLogout = () => {
+    // Здесь должна быть логика выхода
+    // Например, очистка токена, перенаправление и т.д.
+    navigate('/login'); // Перенаправляем на страницу входа
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -63,14 +91,18 @@ const ReportPage = () => {
           Object.entries(params).filter(([_, value]) => value !== undefined)
         );
 
-        const [statsResponse, deliveriesResponse] = await Promise.all([
+        const [statsResponse, deliveriesResponse, allServicesResponse, allTypesResponse] = await Promise.all([
           apiClient.get('statistics/', { params: cleanParams }),
           apiClient.get('deliveries/', { params: cleanParams }),
+          apiClient.get('services/'),
+          apiClient.get('cargo-types/')
         ]);
 
         setData({
           stats: statsResponse.data || {},
           deliveries: deliveriesResponse.data || [],
+          allServices: allServicesResponse.data || [],
+          allTypes: allTypesResponse.data || [],
         });
       } catch (err) {
         setError('Ошибка загрузки данных');
@@ -102,66 +134,109 @@ const ReportPage = () => {
   // Форматируем данные для таблицы
   const formattedDeliveries = (data?.deliveries || []).map(delivery => ({
     ...delivery,
-    status: typeof delivery.status === 'object' ? delivery.status?.name : delivery.status || 'Не указан',
-    delivery_date: delivery.actual_delivery 
-      ? format(delivery.actual_delivery, 'dd.MM.yyyy') 
+    status:  delivery.status?.name,
+    delivery_date: delivery.scheduled_delivery 
+      ? format(delivery.scheduled_delivery, 'dd.MM.yyyy') 
       : 'Не указана'
   }));
 
+  const renderSelectedChart = () => {
+    if (!data?.stats) return null;
+
+    switch (selectedChart) {
+      case 'by_date':
+        if (!data.stats.by_date) return null;
+        return (
+          <DeliveryChart 
+            data={data.stats.by_date.map(item => ({
+              name: format(item.date, 'dd.MM.yyyy'),
+              count: item.count
+            }))}
+            title="Статистика доставок по датам"
+          />
+        );
+      case 'by_service':
+        if (!data.stats.by_service) return null;
+        return (
+          <DeliveryChart 
+            data={data.stats.by_service.map(item => ({
+              name: item.services__name,
+              count: item.count
+            }))} 
+            title="Статистика доставок по услугам"
+          />
+        );
+      case 'by_status':
+        if (!data.stats.by_status) return null;
+        return (
+          <DeliveryChart 
+            data={data.stats.by_status.map(item => ({
+              name: item.status__name,
+              count: item.count
+            }))} 
+            title="Статистика доставок по статусам"
+          />
+        );
+      default:
+        return null;
+    }
+  };
+
   return (
-    <Box sx={{ p: 4 }}>
-      <Typography variant="h4" gutterBottom>
-        Отчет по доставкам
-      </Typography>
-      
-      <Paper elevation={3} sx={{ p: 3, mb: 3 }}>
-        <Filters 
-          filters={filters}
-          setFilters={setFilters}
-          services={[]}
-          cargoTypes={[]}
-        />
-      </Paper>
+    <>
+      <AppBar position="static" color="default" elevation={0}>
+        <Toolbar>
+          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
+            Отчет по доставкам
+          </Typography>
+          <Button 
+            variant="outlined" 
+            color="inherit"
+            onClick={handleLogout}
+          >
+            Выйти
+          </Button>
+        </Toolbar>
+      </AppBar>
 
-      {data?.stats && (
-        <>
-          {data.stats.by_service && (
-            <Paper elevation={3} sx={{ p: 3, mb: 3 }}>
-              <Typography variant="h6" gutterBottom>
-                Статистика доставок по услугам
-              </Typography>
-              <DeliveryChart 
-                data={data.stats.by_service.map(item => ({
-                  name: item.services__name,
-                  count: item.count
-                }))} 
-              />
-            </Paper>
-          )}
-          
-          {data.stats.by_date && (
-            <Paper elevation={3} sx={{ p: 3, mb: 3 }}>
-              <Typography variant="h6" gutterBottom>
-                Статистика доставок по датам
-              </Typography>
-              <DeliveryChart 
-                data={data.stats.by_date.map(item => ({
-                  name: format(item.delivery_date, 'dd.MM.yyyy'),
-                  count: item.count
-                }))}
-              />
-            </Paper>
-          )}
-        </>
-      )}
+      <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+        <Paper elevation={3} sx={{ p: 3, mb: 3 }}>
+          <Filters 
+            filters={filters}
+            setFilters={setFilters}
+            services={data?.allServices || []}
+            cargoTypes={data?.allTypes || []}
+          />
+        </Paper>
 
-      <Paper elevation={3} sx={{ p: 3 }}>
-        <Typography variant="h6" gutterBottom>
-          Таблица доставок
-        </Typography>
-        <DeliveriesTable deliveries={formattedDeliveries} />
-      </Paper>
-    </Box>
+        {data?.stats && (
+          <Paper elevation={3} sx={{ p: 3, mb: 3 }}>
+            <FormControl fullWidth sx={{ mb: 2 }}>
+              <InputLabel id="chart-select-label">Тип графика</InputLabel>
+              <Select
+                labelId="chart-select-label"
+                value={selectedChart}
+                label="Тип графика"
+                onChange={(e) => setSelectedChart(e.target.value as ChartType)}
+              >
+                <MenuItem value="by_date">По датам</MenuItem>
+                <MenuItem value="by_service">По услугам</MenuItem>
+                <MenuItem value="by_status">По статусам</MenuItem>
+              </Select>
+            </FormControl>
+            
+            {renderSelectedChart()}
+          </Paper>
+        )}
+
+        <Paper elevation={3} sx={{ p: 3 }}>
+          <Typography variant="h6" gutterBottom>
+            Таблица доставок
+          </Typography>
+          <DeliveriesTable deliveries={formattedDeliveries} />
+        </Paper>
+      </Container>
+    </>
   );
 };
 

@@ -11,8 +11,6 @@ import {
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import apiClient from '../api/client';
 
-// Создаем тему для Material-UI
-const theme = createTheme();
 
 const LoginPage = () => {
   const [username, setUsername] = useState('');
@@ -31,7 +29,7 @@ const LoginPage = () => {
   };
 
   return (
-    <ThemeProvider theme={theme}>
+
       <Container component="main" maxWidth="xs">
         <CssBaseline />
         <Box
@@ -82,7 +80,6 @@ const LoginPage = () => {
           </Box>
         </Box>
       </Container>
-    </ThemeProvider>
   );
 };
 
