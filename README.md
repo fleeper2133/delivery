@@ -14,7 +14,7 @@
 
 2. Создайте файл `.env` в корне проекта и настройте необходимые переменные окружения для базы данных и других сервисов.
    Пример содержимого файла `.env`:
- ```bash
+```bash
 # Django
 SECRET_KEY=your-secret-key
 DEBUG=1
@@ -33,9 +33,9 @@ CORS_ALLOWED_ORIGINS=http://localhost:8080,http://127.0.0.1:8080
 
 3. Запустите проект с помощью Docker Compose:
 
-   ```bash
+```bash
 docker-compose up --build
-  
+```
 
 4. После успешного запуска, сервисы будут доступны по следующим адресам:
    - Бэкенд: `http://localhost:8000`
@@ -58,13 +58,13 @@ docker-compose up --build
 
 - Для остановки проекта:
 
-  ```bash
+```bash
 docker-compose down
   ```
 
 - Для выполнения миграций вручную:
 
-  ```bash
+```bash
 docker-compose exec backend python manage.py migrate
   ```
 
