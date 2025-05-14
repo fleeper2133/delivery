@@ -1,4 +1,3 @@
-# management/commands/import_test_deliveries.py
 from django.core.management.base import BaseCommand
 from django.contrib.auth import get_user_model
 from faker import Faker
@@ -14,10 +13,16 @@ from reference_books.models import (
 from main.models import Delivery
 
 class Command(BaseCommand):
-    help = 'Импортирует тестовые данные доставок с группировкой по датам и типам'
+    help = 'Импортирует тестовые данные доставок (только если их еще нет)'
 
     def handle(self, *args, **options):
-        self.stdout.write("Начало импорта тестовых доставок...")
+        self.stdout.write("Проверка и импорт тестовых доставок...")
+        
+        # Проверяем, есть ли уже тестовые доставки
+        if Delivery.objects.exists():
+            self.stdout.write(self.style.WARNING("Тестовые доставки уже существуют, импорт пропущен."))
+            return
+
         fake = Faker('ru_RU')
         User = get_user_model()
         
@@ -28,18 +33,18 @@ class Command(BaseCommand):
         statuses = list(DeliveryStatus.objects.all())
         cargo_types = list(CargoType.objects.all())
         
-        # Создаем тестового пользователя, если нет
+        # Проверяем и создаем тестового пользователя
         try:
-            customer = User.objects.get(username='test_customer')
+            customer = User.objects.get(username='test')
         except User.DoesNotExist:
             customer = User.objects.create_user(
-                username='test_customer',
+                username='test',
                 email='customer@example.com',
-                password='testpass123',
+                password='12345',
                 first_name='Иван',
                 last_name='Петров'
             )
-            self.stdout.write("Создан тестовый пользователь: test_customer")
+            self.stdout.write("Создан тестовый пользователь: test (password: 12345)")
 
         # Создаем группы доставок (3-10 доставок в одной группе)
         delivery_groups = []
@@ -47,7 +52,6 @@ class Command(BaseCommand):
         # 1. Группировка по датам (создаем 5-7 групп дат)
         date_groups = []
         for _ in range(random.randint(5, 7)):
-            # Базовые даты для группы
             base_date = fake.date_time_between(start_date='-30d', end_date='now')
             pickup_days = random.randint(1, 3)
             delivery_days = random.randint(3, 7)
@@ -61,9 +65,7 @@ class Command(BaseCommand):
         # 2. Группировка по типам доставки (услуги + тип груза)
         delivery_types = []
         for _ in range(3):  # 3 разных типа доставки
-            # Выбираем 1-2 основные услуги
             main_services = random.sample(services, random.randint(1, 2))
-            # И 0-2 дополнительные
             extra_services = random.sample(
                 [s for s in services if s not in main_services], 
                 random.randint(0, 2)
@@ -80,23 +82,21 @@ class Command(BaseCommand):
         
         # Создаем доставки, объединяя группы
         delivery_id = 1
+        created_count = 0
         for date_group in date_groups:
             for delivery_type in delivery_types:
-                # Сколько доставок в этой группе (3-10)
                 num_deliveries = random.randint(3, 10)
                 
                 for i in range(num_deliveries):
-                    if delivery_id > 20:  # Ограничение в 20 доставок
+                    if created_count >= 20:  # Ограничение в 20 доставок
                         break
                     
-                    # Вариации в датах для каждой доставки в группе
                     date_variation = timedelta(days=random.randint(0, 2), hours=random.randint(0, 12))
                     
                     created_at = date_group['base_date'] + date_variation
                     scheduled_pickup = created_at + timedelta(days=date_group['pickup_days'])
                     scheduled_delivery = created_at + timedelta(days=date_group['delivery_days'])
                     
-                    # 50% шанс, что доставка уже выполнена
                     if random.choice([True, False]):
                         actual_pickup = scheduled_pickup + timedelta(hours=random.randint(0, 12))
                         actual_delivery = scheduled_delivery + timedelta(hours=random.randint(0, 12))
@@ -106,12 +106,13 @@ class Command(BaseCommand):
                         actual_delivery = None
                         status = random.choice([s for s in statuses if s.is_active])
                     
-                    # Параметры доставки
                     weight = round(random.uniform(0.1, 100), 2)
                     volume = round(random.uniform(0.01, 5), 3) if random.choice([True, False]) else None
                     distance = round(random.uniform(1, 500), 2) if random.choice([True, False]) else None
                     
-                    # Создаем доставку
+                    # Рассчитываем общую стоимость
+                    total_price = round(random.uniform(300, 5000), 2)
+                    
                     delivery = Delivery.objects.create(
                         tracking_number=f"TRK{100000 + delivery_id}",
                         customer=customer,
@@ -132,17 +133,12 @@ class Command(BaseCommand):
                         actual_delivery=actual_delivery,
                         notes=f"Доставка #{i+1} в группе" if random.choice([True, False]) else '',
                         distance_km=distance,
-                        total_price=round(random.uniform(300, 5000), 2)
+                        total_price=total_price
                     )
                     
-                    # Добавляем услуги
                     delivery.services.set(delivery_type['services'])
-                    
-                    # Обновляем общую стоимость с учетом услуг
-                   
-                    delivery.save()
-                    
-                    self.stdout.write(f"Создана доставка #{delivery_id}: {delivery.tracking_number} (дата: {created_at.date()})")
+                    created_count += 1
                     delivery_id += 1
+                    self.stdout.write(f"Создана доставка #{created_count}: {delivery.tracking_number}")
 
-        self.stdout.write(self.style.SUCCESS(f"Успешно создано {delivery_id-1} тестовых доставок!"))
+        self.stdout.write(self.style.SUCCESS(f"Успешно создано {created_count} тестовых доставок!"))

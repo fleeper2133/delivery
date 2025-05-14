@@ -31,6 +31,9 @@ services:
         condition: service_healthy
     command: >
       sh -c "python manage.py migrate &&
+            python manage.py import_users &&
+            python manage.py import_reference_books &&
+            python manage.py import_deliveries &&
              python manage.py runserver 0.0.0.0:8000"
 
   frontend:

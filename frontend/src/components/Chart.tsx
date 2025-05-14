@@ -89,8 +89,7 @@ export const DeliveryChart = ({ data, title }: DeliveryChartProps) => {
               boxShadow: theme.shadows[3],
             }}
             formatter={(value: number) => [
-              <span style={{ color: "#FFFFFF" }}>{value}</span>, 
-              'Количество доставок'
+              <span style={{ color: "#FFFFFF" }}>Количество доставок: {value}</span>, 
             ]}
             
           />
